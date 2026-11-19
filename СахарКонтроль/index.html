@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000000">
+<title>СахарКонтроль</title>
+<style>
+:root{--bg:#000;--card:#151517;--card2:#232327;--line:#2c2c30;--txt:#f2f2f7;--mut:#8e8e93;--green:#4cd964;--yellow:#ffcc00;--red:#ff453a;--blue:#0a84ff;--purple:#bf5af2;--orange:#ff9f0a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,Roboto,sans-serif}
+body{padding-bottom:96px}
+.wrap{max-width:560px;margin:0 auto;padding:12px 14px}
+.hidden{display:none!important}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+input,select,textarea{font:inherit;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;width:100%;outline:none}
+input:focus,textarea:focus{border-color:var(--blue)}
+label{display:block;color:var(--mut);font-size:13px;margin:12px 0 6px}
+h2{font-size:22px;margin:6px 0 12px}
+h3{font-size:15px;color:var(--mut);font-weight:600;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border-radius:16px;padding:14px;margin:10px 0}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1}
+.mut{color:var(--mut)}
+.small{font-size:13px}
+.btn{background:var(--card2);padding:13px 16px;border-radius:14px;font-weight:600;text-align:center}
+.btn.primary{background:var(--blue)}
+.btn.green{background:#1f7a33}
+.btn.purple{background:#6a2d8f}
+.btn.red{background:#8a1f1a}
+.btn.block{display:block;width:100%}
+/* top */
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-top:8px}
+.bg{font-size:96px;line-height:.95;font-weight:500;letter-spacing:-3px}
+.bgside{display:flex;flex-direction:column;gap:2px;padding-top:6px}
+.delta{font-size:30px;font-weight:500}
+.arrow{font-size:34px;line-height:1}
+.age{font-size:26px}
+.right{text-align:right;font-size:20px;line-height:1.35;padding-top:6px}
+.c-green{color:var(--green)}.c-yellow{color:var(--yellow)}.c-red{color:var(--red)}.c-mut{color:var(--mut)}
+.stale{text-decoration:line-through;text-decoration-thickness:4px}
+.banner{border-radius:14px;padding:12px 14px;margin:10px 0;font-weight:600;display:block;line-height:1.4}
+.banner.warn{background:#3a2a00;color:#ffd60a}
+.banner.alarm{background:#4a0f0c;color:#ff8a80}
+.banner.ok{background:#0f2e18;color:#7ee09a}
+.banner.info{background:#0d2440;color:#8cc4ff}
+/* rings */
+.rings{display:flex;justify-content:space-around;margin:14px 0 6px}
+.ring{width:80px;height:80px;border-radius:50%;display:grid;place-items:center;position:relative}
+.ring::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--card)}
+.ring div{position:relative;text-align:center;font-weight:700;font-size:17px;line-height:1.1}
+.ring small{display:block;font-size:10px;font-weight:500;color:var(--mut);margin-top:2px}
+/* chart */
+.chartwrap{background:var(--card);border-radius:16px;padding:8px 4px 4px;margin:10px 0}
+.seg{display:flex;background:var(--card2);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;padding:7px 0;border-radius:8px;background:transparent;color:var(--mut);font-size:14px;font-weight:600}
+.seg button.on{background:#3a3a3f;color:var(--txt)}
+svg text{font-family:inherit}
+/* lev */
+.lev{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.levbox{background:var(--card2);border-radius:12px;padding:10px 12px}
+.levbox b{font-size:18px}
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--card2);border:1px solid var(--line);padding:8px 11px;border-radius:20px;font-size:14px}
+.chip:active{background:#333}
+.chip i{font-style:normal;color:var(--mut);font-size:12px;margin-left:4px}
+/* calc */
+.dose{font-size:56px;font-weight:700;line-height:1}
+.calcline{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:15px}
+.calcline:last-child{border:0}
+/* history */
+.hday{margin-top:16px}
+.hdayhead{display:flex;justify-content:space-between;align-items:baseline;padding:0 2px 6px;border-bottom:1px solid var(--line)}
+.hrow{display:flex;gap:10px;padding:10px 2px;border-bottom:1px solid #1d1d20;align-items:flex-start}
+.hrow .t{color:var(--mut);width:44px;flex:none;font-variant-numeric:tabular-nums}
+.hrow .ic{width:22px;flex:none;text-align:center}
+.hrow .x{color:var(--mut);padding:2px 8px;background:transparent;font-size:18px}
+/* nav */
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(18,18,20,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:20}
+nav button{background:transparent;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;padding:4px 10px;border-radius:12px;min-width:64px}
+nav button span{font-size:22px;line-height:1.1}
+nav button.on{color:var(--txt);background:#2a2a2e}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+.sheet{background:#1c1c1f;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#2c2c30;padding:10px 16px;border-radius:12px;z-index:60;font-size:14px;max-width:90%;text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.note{font-size:12px;color:var(--mut);line-height:1.45}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ ГЛАВНАЯ ============ -->
+<section id="v-main">
+  <div class="top">
+    <div class="row" style="gap:10px;align-items:flex-start">
+      <div id="bgVal" class="bg c-mut">--</div>
+      <div class="bgside">
+        <div id="bgDelta" class="delta"></div>
+        <div id="bgArrow" class="arrow"></div>
+        <div id="bgAge" class="age mut"></div>
+      </div>
+    </div>
+    <div class="right">
+      <div id="clock" style="font-size:30px;font-weight:500"></div>
+      <div id="iobTop" class="mut"></div>
+      <div id="srcTop" class="mut small"></div>
+    </div>
+  </div>
+
+  <div id="banners"></div>
+
+  <div class="rings">
+    <div class="ring" id="rGmi"><div><span id="gmi">--</span><small>HbA1c ≈</small></div></div>
+    <div class="ring" id="rTir"><div><span id="tir">--</span><small>В цели</small></div></div>
+    <div class="ring" id="rCnt"><div><span id="cnt">--</span><small>Замеров</small></div></div>
+    <div class="ring" style="background:var(--card2)"><div><span id="avg">--</span><small>Средний</small></div></div>
+  </div>
+
+  <div class="chartwrap">
+    <div class="seg" id="hrsSeg" style="margin:0 6px 6px">
+      <button data-h="3">3 ч</button><button data-h="6" class="on">6 ч</button><button data-h="12">12 ч</button><button data-h="24">24 ч</button>
+    </div>
+    <div id="chart"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <b>💉 Левемир</b><span class="mut small" id="levNext"></span>
+    </div>
+    <div class="lev">
+      <div class="levbox"><div class="mut small">Утро · <span id="levMT">10:00</span></div><b id="levM">—</b></div>
+      <div class="levbox"><div class="mut small">Вечер · <span id="levET">22:00</span></div><b id="levE">—</b></div>
+    </div>
+    <button class="btn purple block" style="margin-top:10px" id="btnLev">Уколол Левемир</button>
+  </div>
+
+  <div class="card">
+    <div class="grid2">
+      <div><div class="mut small">😴 Сон</div><b id="sleepInfo">—</b><div class="mut small" id="sleepSub"></div></div>
+      <div><div class="mut small">💊 Витамины сегодня</div><b id="vitInfo" style="font-size:15px">—</b></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <button class="btn" id="btnSleep" style="background:#1d2a4a">🌙 Лёг спать</button>
+      <button class="btn" id="btnVit" style="background:#3a3010">💊 Витамины</button>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <button class="btn primary" id="btnEat">🍽 Записать еду</button>
+    <button class="btn" id="btnBg">🩸 Сахар вручную</button>
+  </div>
+  <div class="grid2" style="margin-top:10px">
+    <button class="btn" id="btnCorr">💧 Подколка</button>
+    <button class="btn" id="btnRefresh">↻ Обновить</button>
+  </div>
+  <p class="note" id="syncNote" style="margin-top:14px"></p>
+</section>
+
+<!-- ============ ЕДА ============ -->
+<section id="v-food" class="hidden">
+  <h2>Что съел</h2>
+  <div class="banner info small" style="font-weight:500;display:block">Доза считается по <b>вашим</b> коэффициентам от врача. Проверяйте расчёт перед уколом.</div>
+
+  <label>Еда (что кушал)</label>
+  <textarea id="fFood" rows="2" placeholder="например: плов, лепёшка, чай с сахаром"></textarea>
+
+  <label>Быстрый выбор: нажмите, чтобы добавить углеводы (примерно)</label>
+  <div class="chips" id="foodChips"></div>
+
+  <div class="grid2">
+    <div><label>Углеводы, г</label><input id="fCarbs" type="number" inputmode="decimal" placeholder="0"></div>
+    <div><label>= ХЕ</label><input id="fXe" type="number" inputmode="decimal" placeholder="0"></div>
+  </div>
+  <div class="grid2">
+    <div><label>Сахар сейчас, ммоль/л</label><input id="fBg" type="number" inputmode="decimal" placeholder="напр. 8.5"></div>
+    <div><label>Время</label><input id="fTime" type="time"></div>
+  </div>
+  <div class="note" id="fBgHint" style="margin-top:6px"></div>
+
+  <div class="card" id="calcCard" style="margin-top:14px">
+    <div class="row" style="align-items:flex-end;gap:12px">
+      <div><div class="mut small">Рекомендация</div><div class="dose" id="cDose">—</div></div>
+      <div class="mut" style="padding-bottom:6px">ед. короткого</div>
+    </div>
+    <div id="cLines" style="margin-top:10px"></div>
+    <div id="cWarn"></div>
+  </div>
+
+  <label>Сколько уколол фактически, ед</label>
+  <input id="fUnits" type="number" inputmode="decimal" placeholder="0">
+  <button class="btn green block" style="margin-top:14px" id="btnSaveMeal">Сохранить в историю</button>
+  <button class="btn block" style="margin-top:8px" id="btnClearMeal">Очистить</button>
+</section>
+
+<!-- ============ ИСТОРИЯ ============ -->
+<section id="v-hist" class="hidden">
+  <div class="row" style="justify-content:space-between"><h2>История</h2><button class="btn small" id="btnCopy" style="padding:8px 12px">Копировать</button></div>
+  <div class="seg" id="histSeg"><button data-d="1">Сегодня</button><button data-d="7" class="on">7 дней</button><button data-d="30">30 дней</button><button data-d="0">Всё</button></div>
+  <div id="histList"></div>
+  <textarea id="copyBox" class="hidden" rows="8" style="margin-top:12px"></textarea>
+</section>
+
+<!-- ============ НАСТРОЙКИ ============ -->
+<section id="v-set" class="hidden">
+  <h2>Настройки</h2>
+  <div class="banner warn small" style="font-weight:500">Все коэффициенты — только те, что назначил ваш эндокринолог. Пока они не заполнены, приложение не будет рекомендовать дозу.</div>
+
+  <h3>Углеводный коэффициент (ед на 1 ХЕ)</h3>
+  <div class="grid3">
+    <div><label>Утро 05–11</label><input id="sKm" type="number" inputmode="decimal" step="0.1"></div>
+    <div><label>День 11–17</label><input id="sKd" type="number" inputmode="decimal" step="0.1"></div>
+    <div><label>Вечер 17–05</label><input id="sKe" type="number" inputmode="decimal" step="0.1"></div>
+  </div>
+  <div class="grid2">
+    <div><label>1 ХЕ = г углеводов</label><select id="sXe"><option value="10">10 г</option><option value="12">12 г</option></select></div>
+    <div><label>ФЧИ: 1 ед снижает на, ммоль/л</label><input id="sIsf" type="number" inputmode="decimal" step="0.1"></div>
+  </div>
+  <div class="grid2">
+    <div><label>Целевой сахар, ммоль/л</label><input id="sTarget" type="number" inputmode="decimal" step="0.1"></div>
+    <div><label>Время действия короткого, ч</label><input id="sDia" type="number" inputmode="decimal" step="0.5"></div>
+  </div>
+  <div class="grid2">
+    <div><label>Шаг шприц-ручки, ед</label><select id="sStep"><option value="0.5">0.5</option><option value="1">1</option></select></div>
+    <div><label>Предупреждать, если доза больше, ед</label><input id="sMax" type="number" inputmode="decimal"></div>
+  </div>
+  <div class="grid2">
+    <div><label>Нижняя граница цели</label><input id="sLow" type="number" inputmode="decimal" step="0.1"></div>
+    <div><label>Верхняя граница цели</label><input id="sHigh" type="number" inputmode="decimal" step="0.1"></div>
+  </div>
+
+  <h3>Левемир</h3>
+  <div class="grid2">
+    <div><label>Утро: время</label><input id="sLmT" type="time"></div>
+    <div><label>Утро: доза, ед</label><input id="sLmU" type="number" inputmode="decimal"></div>
+  </div>
+  <div class="grid2">
+    <div><label>Вечер: время</label><input id="sLeT" type="time"></div>
+    <div><label>Вечер: доза, ед</label><input id="sLeU" type="number" inputmode="decimal"></div>
+  </div>
+
+  <h3>Витамины</h3>
+  <label>Мои витамины и таблетки (через запятую)</label>
+  <textarea id="sVits" rows="2" placeholder="Витамин D3, Омега-3, Магний"></textarea>
+
+  <h3>Nightscout</h3>
+  <label>Адрес сайта</label><input id="sNsUrl" type="url" placeholder="https://моё-имя.herokuapp.com" autocapitalize="off" autocorrect="off">
+  <label>Токен (или API_SECRET) — хранится только на этом устройстве</label><input id="sNsSec" type="password" autocapitalize="off" autocorrect="off" placeholder="readable-abc123…">
+  <label class="row" style="color:var(--txt);gap:8px"><input id="sNsUp" type="checkbox" style="width:auto"> Отправлять записи (еда, инсулин, Левемир) в Nightscout</label>
+  <div class="note" id="nsStatus"></div>
+
+  <button class="btn green block" style="margin-top:16px" id="btnSaveSet">Сохранить настройки</button>
+  <p class="note" style="margin-top:16px">Активный инсулин считается по кривой быстрого инсулина (пик ~75 мин) из записанных вами доз. Список продуктов приблизительный: при сомнениях взвешивайте и смотрите этикетку. Приложение не заменяет врача.</p>
+</section>
+</div>
+
+<nav>
+  <button data-v="main" class="on"><span>🏠</span>Главная</button>
+  <button data-v="food"><span>🍽</span>Еда</button>
+  <button data-v="hist"><span>🕘</span>История</button>
+  <button data-v="set"><span>⚙️</span>Настройки</button>
+</nav>
+
+<div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
+
+<script>
+"use strict";
+/* ---------- утилиты ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const num=v=>{if(v===''||v==null)return null;const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:null};
+const f1=n=>(Math.round(n*10)/10).toFixed(1).replace('.',',');
+const fU=n=>{const r=Math.round(n*10)/10;return (Number.isInteger(r)?String(r):r.toFixed(1)).replace('.',',')};
+const pad=n=>String(n).padStart(2,'0');
+const hm=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function toast(msg,ms=2200){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms)}
+
+/* ---------- состояние ---------- */
+const DEF={xe:12,k_m:null,k_d:null,k_e:null,isf:null,target:6.0,low:3.9,high:10.0,dia:4,step:0.5,maxBolus:10,lev_m_t:'10:00',lev_e_t:'22:00',lev_m_u:null,lev_e_u:null,vits:'Витамин D3, Омега-3, Магний, Витамин B12'};
+let S={...DEF,...LS.get('sk_settings',{})};
+let ENT=LS.get('sk_entries',[]).sort((a,b)=>b.ts-a.ts); // записи дневника
+let NS={url:LS.get('sk_ns_url','https://j08723842.nightscout-jino.ru'),sec:LS.get('sk_ns_sec',''),up:LS.get('sk_ns_up',false)};
+let CGM=[];                                   // {t,v(ммоль),dir}
+let nsState='off', nsErr='';
+let cloud=null, syncMsg='История сохраняется на этом устройстве.';
+let chartH=6, histDays=7;
+
+/* ---------- облако (история в Claude) ---------- */
+function persistLocal(){LS.set('sk_entries',ENT)}
+async function initCloud(){
+  for(let i=0;i<40&&!(window.claude&&typeof window.claude.use==='function');i++) await sleep(100);
+  if(!(window.claude&&typeof window.claude.use==='function')) return;
+  try{
+    const db=await window.claude.use('db'); const user=await window.claude.use('user');
+    if(!db||!user) return;
+    const id=await user.id(); if(!id) return;
+    const prof=db.doc('data/users/'+id+'/profile'); const log=prof.collection('log');
+    cloud={prof,log};
+    prof.onSnapshot(s=>{
+      if(s.exists){const d=s.data(); if(d&&d.settings){S={...DEF,...d.settings};LS.set('sk_settings',S);fillSettings();renderAll();}}
+      else if(!s.metadata.fromCache && (S.k_m||S.isf)){prof.set({settings:S,updated:Date.now()}).catch(()=>{});}
+    },()=>{});
+    let first=true;
+    const timer=setTimeout(()=>{syncMsg='Облако пока недоступно — записи сохраняются на этом устройстве.';renderSync()},10000);
+    log.onSnapshot(snap=>{
+      if(!snap.metadata.fromCache) clearTimeout(timer);
+      const arr=snap.docs.map(d=>d.data()).filter(Boolean);
+      if(first&&!snap.metadata.fromCache){
+        first=false;
+        const ids=new Set(arr.map(e=>e.id));
+        const pending=ENT.filter(e=>e._local&&!ids.has(e.id));
+        if(pending.length){(async()=>{for(const e of pending){const c={...e};delete c._local;try{await log.doc(c.id).set(c)}catch(_){}}})();arr.push(...pending.map(e=>{const c={...e};delete c._local;return c}));}
+      }
+      ENT=arr.slice().sort((a,b)=>b.ts-a.ts); persistLocal();
+      syncMsg='☁️ История сохраняется в вашем аккаунте Claude и видна на всех устройствах.';
+      renderAll();
+    },()=>{clearTimeout(timer);cloud=null;syncMsg='Облако недоступно — записи сохраняются на этом устройстве.';renderSync()});
+  }catch(e){}
+}
+
+async function saveEntry(e){
+  ENT.unshift(e); ENT.sort((a,b)=>b.ts-a.ts); persistLocal(); renderAll();
+  if(cloud){try{await cloud.log.doc(e.id).set(e)}catch(err){e._local=1;persistLocal();toast('Сохранено на устройстве, в облако — позже')}}
+  else{e._local=1;persistLocal()}
+  if(NS.up&&nsState==='ok'){const ok=await nsUpload(e); if(!ok) toast('Не удалось отправить в Nightscout');}
+}
+async function deleteEntry(id){
+  ENT=ENT.filter(e=>e.id!==id); persistLocal(); renderAll();
+  if(cloud){try{await cloud.log.doc(id).delete()}catch(_){}}
+}
+async function saveSettings(){
+  LS.set('sk_settings',S);
+  if(cloud){try{await cloud.prof.set({settings:S,updated:Date.now()})}catch(_){}}
+}
+
+/* ---------- Nightscout ---------- */
+const isToken=s=>/^[a-z0-9_.]+-[0-9a-f]{16}$/i.test(s||'');
+async function sha1(s){const b=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function nsUrl(path){let u=NS.url.trim().replace(/\/+$/,'');if(!/^https?:\/\//i.test(u))u='https://'+u;if(NS.sec&&isToken(NS.sec))path+=(path.includes('?')?'&':'?')+'token='+encodeURIComponent(NS.sec);return u+path}
+async function nsHeaders(){if(!NS.sec||isToken(NS.sec))return {};try{return {'api-secret':await sha1(NS.sec)}}catch(_){return {}}}
+async function loadCGM(){
+  if(!NS.url){nsState='off';return}
+  try{
+    const r=await fetch(nsUrl('/api/v1/entries/sgv.json?count=300'),{headers:await nsHeaders(),cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status+(r.status===401?' — проверьте токен':''));
+    const j=await r.json();
+    CGM=j.filter(e=>e.sgv&&e.date).map(e=>({t:e.date,v:e.sgv/18.0182,dir:e.direction})).sort((a,b)=>a.t-b.t);
+    nsState='ok';nsErr='';
+  }catch(e){
+    nsState='error';
+    nsErr=/claude\.ai|claudeusercontent|anthropic/.test(location.hostname)
+      ?'Внутри Claude страница не может подключаться к внешним сайтам. Сахар вводите вручную, а для живых данных откройте версию приложения в виде файла.'
+      :('Не удалось подключиться: '+(e.message||e));
+  }
+}
+async function nsUpload(e){
+  if(['sleep_start','sleep_end','vitamin'].includes(e.type)) return true;
+  const tr={enteredBy:'СахарКонтроль',created_at:new Date(e.ts).toISOString()};
+  if(e.type==='meal'){tr.eventType='Meal Bolus';if(e.carbs)tr.carbs=e.carbs;if(e.units)tr.insulin=e.units;tr.notes=e.food||''}
+  else if(e.type==='insulin'){tr.eventType='Correction Bolus';tr.insulin=e.units}
+  else if(e.type==='levemir'){tr.eventType='Note';tr.notes='Левемир '+e.units+' ед'}
+  else if(e.type==='bg'){tr.eventType='BG Check';tr.glucose=e.bg;tr.glucoseType='Finger';tr.units='mmol'}
+  try{const r=await fetch(nsUrl('/api/v1/treatments'),{method:'POST',headers:{'Content-Type':'application/json',...await nsHeaders()},body:JSON.stringify([tr])});return r.ok}catch(_){return false}
+}
+
+/* ---------- расчёты ---------- */
+function coefNow(d=new Date()){const h=d.getHours();return h>=5&&h<11?S.k_m:(h>=11&&h<17?S.k_d:S.k_e)}
+function periodName(d=new Date()){const h=d.getHours();return h>=5&&h<11?'утро':(h>=11&&h<17?'день':'вечер')}
+function iobFrac(min){
+  const end=Math.min(8,Math.max(3,S.dia||4))*60, peak=75;
+  if(min<=0) return 1; if(min>=end) return 0;
+  const tau=peak*(1-peak/end)/(1-2*peak/end), a=2*tau/end, Sx=1/(1-a+(1+a)*Math.exp(-end/tau));
+  return Math.max(0,Math.min(1,1-Sx*(1-a)*((min*min/(tau*end*(1-a))-min/tau-1)*Math.exp(-min/tau)+1)));
+}
+function iobAt(t=Date.now()){let s=0;for(const e of ENT){if((e.type==='meal'||e.type==='insulin')&&e.units>0&&e.ts<=t){s+=e.units*iobFrac((t-e.ts)/60000)}}return s}
+function latestBG(){
+  const c=CGM.length?CGM[CGM.length-1]:null;
+  const m=ENT.find(e=>e.bg!=null&&e.bg>0);
+  let best=null;
+  if(c) best={t:c.t,v:c.v,src:'cgm',dir:c.dir};
+  if(m&&(!best||m.ts>best.t)) best={t:m.ts,v:m.bg,src:'manual'};
+  if(best&&best.src==='cgm'&&CGM.length>1){const p=CGM[CGM.length-2];if(c.t-p.t<12*60000)best.delta=c.v-p.v}
+  return best;
+}
+function bgColor(v){return v<S.low?'c-red':(v>S.high+3.9?'c-red':(v>S.high?'c-yellow':'c-green'))}
+const ARROWS={DoubleUp:'⇈',SingleUp:'↑',FortyFiveUp:'↗',Flat:'→',FortyFiveDown:'↘',SingleDown:'↓',DoubleDown:'⇊'};
+
+function calc(carbs,bg){
+  const r={dose:null,lines:[],warn:[],level:'info'};
+  const k=coefNow();
+  if(!k||!S.isf||!S.target){r.warn.push(['warn','Заполните в Настройках углеводный коэффициент на '+periodName()+', ФЧИ и целевой сахар — без них доза не рассчитывается.']);return r}
+  if(bg!=null&&bg<S.low){r.dose=0;r.warn.push(['alarm','Сахар '+f1(bg)+' — гипогликемия! Сначала 15–20 г быстрых углеводов (сок, сахар), перепроверьте через 15 минут. Сейчас короткий инсулин НЕ колите.']);return r}
+  const xe=(carbs||0)/S.xe, meal=xe*k, iob=iobAt();
+  let corr=0, rawCorr=0;
+  if(bg!=null){rawCorr=(bg-S.target)/S.isf; corr=rawCorr>0?Math.max(0,rawCorr-iob):rawCorr}
+  const total=Math.max(0,meal+corr), step=S.step||0.5, dose=Math.round(total/step)*step;
+  r.dose=dose;
+  r.lines.push(['На еду: '+fU(xe)+' ХЕ × '+fU(k)+' ('+periodName()+')',fU(meal)+' ед']);
+  if(bg!=null){
+    r.lines.push(['Коррекция: ('+f1(bg)+' − '+f1(S.target)+') ÷ '+fU(S.isf),(rawCorr>=0?'+':'')+fU(rawCorr)+' ед']);
+    if(rawCorr>0&&iob>0.05) r.lines.push(['Минус активный инсулин','−'+fU(Math.min(iob,rawCorr))+' ед']);
+  }
+  r.lines.push(['Итого (округлено до '+fU(step)+')','<b>'+fU(dose)+' ед</b>']);
+  if(bg==null) r.warn.push(['warn','Сахар не указан — посчитано только на еду, без коррекции. Лучше измерить.']);
+  if(iob>0.05) r.warn.push(['info','Ещё действует ≈'+fU(iob)+' ед короткого с прошлых уколов.']);
+  if(S.maxBolus&&dose>S.maxBolus) r.warn.push(['alarm','Доза больше вашего лимита ('+fU(S.maxBolus)+' ед). Перепроверьте углеводы и сахар.']);
+  if(bg!=null&&bg>=14) r.warn.push(['warn','Сахар ≥14: проверьте кетоны. Если тошнота, рвота, боль в животе — срочно к врачу.']);
+  if(bg!=null&&bg<S.target&&carbs>0) r.warn.push(['info','Сахар ниже цели — доза на еду уменьшена.']);
+  return r;
+}
+
+/* ---------- Левемир ---------- */
+function tmin(s){const [h,m]=(s||'0:0').split(':').map(Number);return h*60+(m||0)}
+function levStatus(now=new Date()){
+  const day0=new Date(now);day0.setHours(0,0,0,0);const d0=day0.getTime();
+  const mT=tmin(S.lev_m_t), eT=tmin(S.lev_e_t), mid=(mT+eT)/2;
+  const nowMin=(now-d0)/60000;
+  // утренний: от (mT-4ч) до середины; вечерний: от середины до (eT+6ч)
+  const lev=ENT.filter(e=>e.type==='levemir');
+  const inWin=(a,b)=>lev.find(e=>e.ts>=d0+a*60000&&e.ts<d0+b*60000);
+  let mDone=inWin(mT-240,mid), eDone=inWin(mid,eT+360);
+  // если сейчас после полуночи, но до утреннего окна — вечер считается вчерашний
+  if(nowMin<mT-240){const y=d0-864e5;eDone=lev.find(e=>e.ts>=y+mid*60000&&e.ts<y+(eT+360)*60000);mDone=null}
+  return {mDone,eDone,mT,eT,nowMin,mid};
+}
+
+/* ---------- отрисовка ---------- */
+function renderTop(){
+  const now=new Date();
+  $('#clock').textContent=hm(now);
+  const b=latestBG(), el=$('#bgVal');
+  if(b){
+    const age=Math.round((Date.now()-b.t)/60000), stale=age>15;
+    el.textContent=f1(b.v);el.className='bg '+(stale?'c-mut stale':bgColor(b.v));
+    $('#bgDelta').textContent=b.delta!=null?((b.delta>=0?'+':'')+f1(b.delta)):'';
+    $('#bgArrow').textContent=b.src==='cgm'?(ARROWS[b.dir]||''):'🩸';
+    const a=$('#bgAge');a.textContent=age<1?'сейчас':(age<120?age+' мин':Math.round(age/60)+' ч');a.className='age '+(age>15?'c-red':'mut');
+  }else{el.textContent='--';el.className='bg c-mut';$('#bgDelta').textContent='';$('#bgArrow').textContent='';$('#bgAge').textContent=''}
+  $('#iobTop').textContent='Инс. '+fU(iobAt())+' ед';
+  $('#srcTop').textContent=nsState==='ok'?'Nightscout':(nsState==='error'?'NS: нет связи':'ручной ввод');
+}
+function renderBanners(){
+  const box=$('#banners'),out=[],b=latestBG(),now=new Date();
+  if(b&&Date.now()-b.t<30*60000){
+    if(b.v<S.low) out.push(['alarm','⚠️ Низкий сахар '+f1(b.v)+'! Съешьте 15–20 г быстрых углеводов.']);
+    else if(b.v>=14) out.push(['warn','Высокий сахар '+f1(b.v)+'. Проверьте кетоны, подумайте о подколке.']);
+  }
+  if(b&&b.src==='cgm'&&Date.now()-b.t>15*60000) out.push(['warn','Нет новых данных с сенсора '+Math.round((Date.now()-b.t)/60000)+' мин. Проверьте телефон/сенсор или измерьте глюкометром.']);
+  const L=levStatus(now);
+  if(!L.mDone&&L.nowMin>=L.mT&&L.nowMin<L.mid) out.push(['alarm','💉 Пора уколоть Левемир (утро, '+S.lev_m_t+')'+(S.lev_m_u?' — '+fU(S.lev_m_u)+' ед':'')]);
+  if(!L.eDone&&L.nowMin>=L.eT) out.push(['alarm','💉 Пора уколоть Левемир (вечер, '+S.lev_e_t+')'+(S.lev_e_u?' — '+fU(S.lev_e_u)+' ед':'')]);
+  if(nsState==='error'&&NS.url) out.push(['info',nsErr]);
+  box.innerHTML=out.map(([c,t])=>'<div class="banner '+c+'">'+esc(t)+'</div>').join('');
+}
+function renderLev(){
+  const L=levStatus();
+  $('#levMT').textContent=S.lev_m_t;$('#levET').textContent=S.lev_e_t;
+  const fmt=(d,due)=>d?'<span class="c-green">✓ '+hm(d.ts)+' · '+fU(d.units)+' ед</span>':(due?'<span class="c-red">не уколот</span>':'<span class="mut">ждёт</span>');
+  $('#levM').innerHTML=fmt(L.mDone,L.nowMin>=L.mT);
+  $('#levE').innerHTML=fmt(L.eDone,L.nowMin>=L.eT);
+  const next=!L.mDone&&L.nowMin<L.mT?L.mT:(!L.eDone&&L.nowMin<L.eT?L.eT:(L.nowMin<L.mT?L.mT:L.mT+1440));
+  const diff=Math.round(next-L.nowMin);
+  $('#levNext').textContent=diff>0?'следующий через '+Math.floor(diff/60)+' ч '+pad(diff%60)+' мин':'';
+}
+function ringBg(pct,color){return 'conic-gradient('+color+' '+pct*3.6+'deg, #333 0)'}
+function renderStats(){
+  const since=Date.now()-864e5;
+  let vals=CGM.filter(c=>c.t>=since).map(c=>c.v), label='/288';
+  if(!vals.length){vals=ENT.filter(e=>e.bg&&e.ts>=Date.now()-7*864e5).map(e=>e.bg);label=' за 7д'}
+  if(!vals.length){['#gmi','#tir','#cnt','#avg'].forEach(s=>$(s).textContent='--');return}
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const inR=vals.filter(v=>v>=S.low&&v<=S.high).length/vals.length*100;
+  const gmi=3.31+0.02392*avg*18.0182;
+  $('#gmi').textContent=gmi.toFixed(1).replace('.',',')+'%';
+  $('#rGmi').style.background=ringBg(100,gmi<7?'var(--green)':(gmi<8?'var(--yellow)':'var(--red)'));
+  $('#tir').textContent=Math.round(inR)+'%';
+  $('#rTir').style.background=ringBg(inR,'var(--green)');
+  $('#cnt').innerHTML=vals.length+'<span class="mut" style="font-size:11px">'+label+'</span>';
+  $('#rCnt').style.background=ringBg(label==='/288'?Math.min(100,vals.length/288*100):100,'#8e8e93');
+  $('#avg').textContent=f1(avg);
+}
+function renderChart(){
+  const box=$('#chart'),W=Math.max(300,box.clientWidth||340),H=230,padL=26,padR=8,padT=8,padB=36;
+  const now=Date.now(),t0=now-chartH*36e5,t1=now+10*60000;
+  const pts=CGM.filter(c=>c.t>=t0);
+  const man=ENT.filter(e=>e.bg&&e.ts>=t0);
+  const ev=ENT.filter(e=>e.ts>=t0&&(e.type==='meal'||e.type==='insulin'||e.type==='levemir'));
+  let ymax=Math.max(14,...pts.map(p=>p.v+1),...man.map(m=>m.bg+1));ymax=Math.min(25,Math.ceil(ymax));
+  const ymin=2,plotB=H-padB;
+  const X=t=>padL+(t-t0)/(t1-t0)*(W-padL-padR), Y=v=>padT+(1-(Math.min(ymax,Math.max(ymin,v))-ymin)/(ymax-ymin))*(plotB-padT);
+  let s='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">';
+  s+='<rect x="'+padL+'" y="'+Y(S.high)+'" width="'+(W-padL-padR)+'" height="'+(Y(S.low)-Y(S.high))+'" fill="#1f1f22"/>';
+  [S.low,S.high,ymax>=15?15:null].filter(v=>v).forEach(v=>{s+='<text x="2" y="'+(Y(v)+4)+'" fill="#777" font-size="10">'+f1(v)+'</text>'});
+  const step=chartH<=6?1:(chartH<=12?2:4);const d=new Date(t0);d.setMinutes(0,0,0);
+  for(let t=d.getTime()+36e5;t<t1;t+=36e5){const h=new Date(t).getHours();if(h%step)continue;
+    s+='<line x1="'+X(t)+'" x2="'+X(t)+'" y1="'+padT+'" y2="'+plotB+'" stroke="#222"/>';
+    s+='<text x="'+X(t)+'" y="'+(H-20)+'" fill="#888" font-size="11" text-anchor="middle">'+pad(h)+':00</text>'}
+  const r=chartH<=6?2.6:(chartH<=12?2:1.6);
+  for(const p of pts){const c=p.v<S.low?'#ff453a':(p.v>S.high?'#ffcc00':'#4cd964');s+='<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="'+r+'" fill="'+c+'"/>'}
+  for(const m of man){s+='<circle cx="'+X(m.ts)+'" cy="'+Y(m.bg)+'" r="5" fill="#000" stroke="#fff" stroke-width="2"/>'}
+  for(const e of ev){const x=X(e.ts);
+    if(e.type==='meal'&&e.carbs){s+='<text x="'+x+'" y="'+(H-4)+'" fill="#ff9f0a" font-size="11" text-anchor="middle">▲'+Math.round(e.carbs)+'г</text>'}
+    if((e.type==='meal'||e.type==='insulin')&&e.units){s+='<line x1="'+x+'" x2="'+x+'" y1="'+(plotB-14)+'" y2="'+plotB+'" stroke="#0a84ff" stroke-width="4"/><text x="'+(x+4)+'" y="'+(plotB-4)+'" fill="#0a84ff" font-size="10">'+fU(e.units)+'</text>'}
+    if(e.type==='levemir'){s+='<text x="'+x+'" y="'+(padT+12)+'" fill="#bf5af2" font-size="11" text-anchor="middle">💉'+fU(e.units)+'</text>'}
+  }
+  s+='<line x1="'+X(now)+'" x2="'+X(now)+'" y1="'+padT+'" y2="'+plotB+'" stroke="#555" stroke-dasharray="3 3"/>';
+  if(!pts.length&&!man.length) s+='<text x="'+(W/2)+'" y="'+(H/2)+'" fill="#666" font-size="13" text-anchor="middle">Нет данных о сахаре за этот период</text>';
+  s+='</svg>';box.innerHTML=s;
+}
+function renderSync(){
+  $('#syncNote').textContent=syncMsg+(nsState==='ok'?' Данные сенсора — из Nightscout.':'');
+}
+const ICON={meal:'🍽',insulin:'💧',levemir:'💉',bg:'🩸',sleep_start:'🌙',sleep_end:'☀️',vitamin:'💊'};
+const dur=m=>Math.floor(m/60)+' ч '+pad(Math.round(m%60))+' мин';
+function entryText(e){
+  if(e.type==='meal'){let t=esc(e.food||'Еда');const p=[];if(e.carbs)p.push(Math.round(e.carbs)+' г ('+fU(e.carbs/S.xe)+' ХЕ)');if(e.bg)p.push('сахар '+f1(e.bg));if(e.units!=null)p.push('<b style="color:#4aa3ff">'+fU(e.units)+' ед</b>'+(e.rec!=null&&e.rec!==e.units?' <span class="mut">(реком. '+fU(e.rec)+')</span>':''));return t+'<div class="small mut">'+p.join(' · ')+'</div>'}
+  if(e.type==='insulin') return 'Подколка <b style="color:#4aa3ff">'+fU(e.units)+' ед</b>'+(e.bg?'<div class="small mut">сахар '+f1(e.bg)+'</div>':'');
+  if(e.type==='levemir') return '<span style="color:#d08bff">Левемир '+fU(e.units)+' ед</span>';
+  if(e.type==='sleep_start') return '<span style="color:#8cb4ff">Лёг спать</span>';
+  if(e.type==='sleep_end') return '<span style="color:#ffd27a">Проснулся</span>'+(e.mins?' · спал <b>'+dur(e.mins)+'</b>':'');
+  if(e.type==='vitamin') return 'Витамины: '+esc((e.names||[]).join(', '));
+  if(e.type==='bg') return 'Сахар <b>'+f1(e.bg)+'</b>'+(e.note?' <span class="mut">'+esc(e.note)+'</span>':'');
+  return '';
+}
+function histFiltered(){const since=histDays?(()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()-(histDays-1)*864e5})():0;return ENT.filter(e=>e.ts>=since)}
+function renderHist(){
+  const list=histFiltered(),box=$('#histList');
+  if(!list.length){box.innerHTML='<p class="mut" style="margin-top:20px">Пока нет записей.</p>';return}
+  const days={};for(const e of list){const k=new Date(e.ts).toDateString();(days[k]=days[k]||[]).push(e)}
+  let h='';
+  for(const k of Object.keys(days)){
+    const arr=days[k],d=new Date(arr[0].ts);
+    const carbs=arr.reduce((a,e)=>a+(e.carbs||0),0),bol=arr.filter(e=>e.type!=='levemir').reduce((a,e)=>a+(e.units||0),0),lev=arr.filter(e=>e.type==='levemir').reduce((a,e)=>a+(e.units||0),0);
+    h+='<div class="hday"><div class="hdayhead"><b>'+d.toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'long'})+'</b><span class="small mut">'+Math.round(carbs)+' г · '+fU(carbs/S.xe)+' ХЕ · кор. '+fU(bol)+' · Лев. '+fU(lev)+'</span></div>';
+    for(const e of arr){h+='<div class="hrow"><div class="t">'+hm(e.ts)+'</div><div class="ic">'+ICON[e.type]+'</div><div class="grow">'+entryText(e)+'</div><button class="x" data-del="'+e.id+'">×</button></div>'}
+    h+='</div>';
+  }
+  box.innerHTML=h;
+}
+function sleepState(){const s=ENT.find(e=>e.type==='sleep_start'||e.type==='sleep_end');return s&&s.type==='sleep_start'?s:null}
+function renderSleepVit(){
+  const sl=sleepState(),btn=$('#btnSleep');
+  if(sl){btn.textContent='☀️ Проснулся';$('#sleepInfo').textContent='Спит с '+hm(sl.ts);$('#sleepSub').textContent=dur((Date.now()-sl.ts)/60000)}
+  else{btn.textContent='🌙 Лёг спать';const w=ENT.find(e=>e.type==='sleep_end'&&e.mins);
+    $('#sleepInfo').textContent=w?dur(w.mins):'—';$('#sleepSub').textContent=w?('проснулся '+hm(w.ts)+(Date.now()-w.ts>864e5?', '+new Date(w.ts).toLocaleDateString('ru-RU'):'')):'нет записей'}
+  const d0=new Date();d0.setHours(0,0,0,0);
+  const names=[...new Set(ENT.filter(e=>e.type==='vitamin'&&e.ts>=d0.getTime()).flatMap(e=>e.names||[]))];
+  $('#vitInfo').textContent=names.length?names.join(', '):'не принимал';
+}
+function sleepModal(){
+  const sl=sleepState();
+  openModal('<h2>'+(sl?'☀️ Проснулся':'🌙 Лёг спать')+'</h2>'+(sl?'<p class="mut">Лёг в '+hm(sl.ts)+'</p>':'')+'<label>Время</label><input id="mT" type="time" value="'+hm(Date.now())+'"><div class="grid2" style="margin-top:16px"><button class="btn" id="mC">Отмена</button><button class="btn primary" id="mOk">Записать</button></div>',()=>{
+    $('#mC').onclick=closeModal;
+    $('#mOk').onclick=()=>{let ts=timeToTs($('#mT').value);
+      if(sl){if(ts<=sl.ts)ts+=864e5*(ts+864e5<=Date.now()+36e5?1:0);const mins=Math.round((ts-sl.ts)/60000);if(mins<=0||mins>20*60){toast('Проверьте время');return}
+        saveEntry({id:uid(),ts,type:'sleep_end',mins});toast('Спал '+dur(mins)+' ✓')}
+      else{saveEntry({id:uid(),ts,type:'sleep_start'});toast('Спокойной ночи 🌙')}
+      closeModal()};
+  });
+}
+function vitModal(){
+  const list=(S.vits||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const d0=new Date();d0.setHours(0,0,0,0);
+  const taken=new Set(ENT.filter(e=>e.type==='vitamin'&&e.ts>=d0.getTime()).flatMap(e=>e.names||[]));
+  openModal('<h2>💊 Какие витамины выпил</h2><div id="vList">'+list.map((n,i)=>'<label class="row" style="color:var(--txt);gap:10px;font-size:16px;margin:10px 0"><input type="checkbox" style="width:22px;height:22px" data-i="'+i+'">'+esc(n)+(taken.has(n)?' <span class="c-green small">✓ уже сегодня</span>':'')+'</label>').join('')+'</div><label>Другое (необязательно)</label><input id="mO" placeholder="название"><p class="note">Список можно изменить в Настройках.</p><div class="grid2" style="margin-top:12px"><button class="btn" id="mC">Отмена</button><button class="btn green" id="mOk">Записать</button></div>',()=>{
+    $('#mC').onclick=closeModal;
+    $('#mOk').onclick=()=>{const names=$$('#vList input:checked').map(c=>list[+c.dataset.i]);const o=$('#mO').value.trim();if(o)names.push(o);
+      if(!names.length){toast('Отметьте витамины');return}saveEntry({id:uid(),ts:Date.now(),type:'vitamin',names});closeModal();toast('Записано ✓')};
+  });
+}
+function renderAll(){renderTop();renderBanners();renderLev();renderSleepVit();renderStats();renderChart();renderSync();if(!$('#v-hist').classList.contains('hidden'))renderHist();if(!$('#v-food').classList.contains('hidden'))renderCalc()}
+
+/* ---------- еда / калькулятор ---------- */
+const FOODS=[
+ ['Хлеб, кусок',12],['Лепёшка ¼',35],['Борсок, 1 шт',8],['Плов, тарелка',65],['Лагман, тарелка',60],['Манты, 1 шт',12],
+ ['Самса, 1 шт',30],['Бешбармак, порция',40],['Пельмени, 10 шт',30],['Рис, 100 г гот.',28],['Гречка, 100 г гот.',20],['Макароны, 100 г гот.',25],
+ ['Картошка, 1 средн.',20],['Пюре, 100 г',15],['Каша овсяная, тарелка',30],['Яблоко',15],['Банан',25],['Сок, стакан',25],
+ ['Молоко, стакан',12],['Чай с сахаром (2 ч.л.)',10],['Печенье, 1 шт',7],['Конфета',8],['Мясо / яйца / сыр',0]
+];
+function renderChips(){$('#foodChips').innerHTML=FOODS.map((f,i)=>'<button class="chip" data-f="'+i+'">'+esc(f[0])+'<i>'+f[1]+'г</i></button>').join('')}
+let calcRes=null,unitsTouched=false;
+function renderCalc(){
+  const carbs=num($('#fCarbs').value)||0,bg=num($('#fBg').value);
+  calcRes=calc(carbs,bg);
+  $('#cDose').textContent=calcRes.dose==null?'—':fU(calcRes.dose);
+  $('#cLines').innerHTML=calcRes.lines.map(l=>'<div class="calcline"><span class="mut">'+l[0]+'</span><span>'+l[1]+'</span></div>').join('');
+  $('#cWarn').innerHTML=calcRes.warn.map(w=>'<div class="banner '+w[0]+' small" style="font-weight:500">'+esc(w[1])+'</div>').join('');
+  if(!unitsTouched) $('#fUnits').value=calcRes.dose==null?'':String(calcRes.dose);
+}
+function prefillFood(){
+  const now=new Date();$('#fTime').value=pad(now.getHours())+':'+pad(now.getMinutes());
+  const b=latestBG(),hint=$('#fBgHint');
+  if(!$('#fBg').value){
+    if(b&&Date.now()-b.t<=15*60000){$('#fBg').value=(Math.round(b.v*10)/10).toString();hint.textContent='Подставлен сахар '+(b.src==='cgm'?'с сенсора':'из записи')+' ('+hm(b.t)+').'}
+    else if(b){hint.innerHTML='<span class="c-yellow">Последний сахар '+f1(b.v)+' был '+Math.round((Date.now()-b.t)/60000)+' мин назад — измерьте глюкометром и введите.</span>'}
+    else hint.textContent='Введите сахар с глюкометра для точной дозы.';
+  }
+  renderCalc();
+}
+function timeToTs(v){const d=new Date();if(!v)return d.getTime();const [h,m]=v.split(':').map(Number);d.setHours(h,m,0,0);if(d.getTime()-Date.now()>60*60000)d.setDate(d.getDate()-1);return d.getTime()}
+function clearMeal(){['#fFood','#fCarbs','#fXe','#fBg','#fUnits'].forEach(s=>$(s).value='');unitsTouched=false;$('#fBgHint').textContent='';prefillFood()}
+
+/* ---------- модальные окна ---------- */
+function openModal(html,onMount){$('#sheet').innerHTML=html;$('#modal').classList.remove('hidden');onMount&&onMount()}
+function closeModal(){$('#modal').classList.add('hidden')}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+function levModal(){
+  const L=levStatus(),isEve=L.nowMin>=L.mid||L.nowMin<L.mT-240;
+  const u=isEve?S.lev_e_u:S.lev_m_u;
+  openModal('<h2>💉 Левемир — '+(isEve?'вечер':'утро')+'</h2><label>Доза, ед</label><input id="mU" type="number" inputmode="decimal" value="'+(u??'')+'"><label>Время</label><input id="mT" type="time" value="'+hm(Date.now())+'"><div class="grid2" style="margin-top:16px"><button class="btn" id="mC">Отмена</button><button class="btn purple" id="mOk">Записать</button></div>',()=>{
+    $('#mC').onclick=closeModal;
+    $('#mOk').onclick=()=>{const v=num($('#mU').value);if(!v||v<=0||v>100){toast('Введите дозу');return}saveEntry({id:uid(),ts:timeToTs($('#mT').value),type:'levemir',units:v});closeModal();toast('Левемир записан ✓')};
+  });
+}
+function bgModal(){
+  openModal('<h2>🩸 Сахар с глюкометра</h2><label>ммоль/л</label><input id="mB" type="number" inputmode="decimal" placeholder="напр. 7.8"><label>Комментарий (необязательно)</label><input id="mN" placeholder="до еды, после сна…"><div class="grid2" style="margin-top:16px"><button class="btn" id="mC">Отмена</button><button class="btn primary" id="mOk">Записать</button></div>',()=>{
+    $('#mB').focus();$('#mC').onclick=closeModal;
+    $('#mOk').onclick=()=>{const v=num($('#mB').value);if(!v||v<1||v>35){toast('Введите сахар 1–35');return}saveEntry({id:uid(),ts:Date.now(),type:'bg',bg:v,note:$('#mN').value.trim()||undefined});closeModal();toast('Записано ✓')};
+  });
+}
+function corrModal(){
+  const b=latestBG(),fresh=b&&Date.now()-b.t<=15*60000;
+  openModal('<h2>💧 Подколка (без еды)</h2><label>Сахар сейчас, ммоль/л</label><input id="mB" type="number" inputmode="decimal" value="'+(fresh?Math.round(b.v*10)/10:'')+'"><div id="mR" style="margin-top:10px"></div><label>Уколол, ед</label><input id="mU" type="number" inputmode="decimal"><div class="grid2" style="margin-top:16px"><button class="btn" id="mC">Отмена</button><button class="btn primary" id="mOk">Записать</button></div>',()=>{
+    let touched=false;
+    const upd=()=>{const bg=num($('#mB').value);const r=calc(0,bg);$('#mR').innerHTML=(r.dose!=null?'<div class="calcline"><span class="mut">Рекомендация</span><b>'+fU(r.dose)+' ед</b></div>':'')+r.lines.slice(0,-1).map(l=>'<div class="calcline small"><span class="mut">'+l[0]+'</span><span>'+l[1]+'</span></div>').join('')+r.warn.filter(w=>!/только на еду|ниже цели/.test(w[1])).map(w=>'<div class="banner '+w[0]+' small" style="font-weight:500">'+esc(w[1])+'</div>').join('');if(!touched)$('#mU').value=r.dose!=null&&bg!=null?r.dose:''};
+    $('#mB').oninput=upd;$('#mU').oninput=()=>touched=true;upd();
+    $('#mC').onclick=closeModal;
+    $('#mOk').onclick=()=>{const u=num($('#mU').value),bg=num($('#mB').value);if(u==null||u<0||u>50){toast('Введите дозу');return}if(u===0&&bg==null){closeModal();return}saveEntry({id:uid(),ts:Date.now(),type:u>0?'insulin':'bg',units:u>0?u:undefined,bg:bg??undefined});closeModal();toast('Записано ✓')};
+  });
+}
+
+/* ---------- настройки ---------- */
+function fillSettings(){
+  const set=(id,v)=>{const el=$(id);if(el&&document.activeElement!==el)el.value=v??''};
+  set('#sKm',S.k_m);set('#sKd',S.k_d);set('#sKe',S.k_e);set('#sXe',String(S.xe));set('#sIsf',S.isf);set('#sTarget',S.target);set('#sDia',S.dia);
+  set('#sStep',String(S.step));set('#sMax',S.maxBolus);set('#sLow',S.low);set('#sHigh',S.high);
+  set('#sLmT',S.lev_m_t);set('#sLmU',S.lev_m_u);set('#sLeT',S.lev_e_t);set('#sLeU',S.lev_e_u);
+  set('#sVits',S.vits);set('#sNsUrl',NS.url);set('#sNsSec',NS.sec);$('#sNsUp').checked=!!NS.up;
+  $('#nsStatus').textContent=nsState==='ok'?'✅ Nightscout подключён, последних замеров: '+CGM.length:(nsState==='error'?'⚠️ '+nsErr:'Не подключён — сахар можно вводить вручную.');
+}
+async function onSaveSettings(){
+  const k=['#sKm','#sKd','#sKe'].map(s=>num($(s).value));
+  const isf=num($('#sIsf').value),target=num($('#sTarget').value),dia=num($('#sDia').value);
+  for(const v of k){if(v!=null&&(v<=0||v>5)){toast('Коэффициент на ХЕ обычно 0,5–3. Проверьте.');return}}
+  if(isf!=null&&(isf<=0||isf>15)){toast('Проверьте ФЧИ');return}
+  if(target!=null&&(target<4||target>10)){toast('Цель должна быть 4–10');return}
+  S={...S,k_m:k[0],k_d:k[1],k_e:k[2],xe:+$('#sXe').value,isf,target:target??6,dia:Math.min(8,Math.max(3,dia||4)),step:+$('#sStep').value,
+     maxBolus:num($('#sMax').value)||10,low:num($('#sLow').value)||3.9,high:num($('#sHigh').value)||10,
+     lev_m_t:$('#sLmT').value||'10:00',lev_e_t:$('#sLeT').value||'22:00',lev_m_u:num($('#sLmU').value),lev_e_u:num($('#sLeU').value),vits:$('#sVits').value.trim()};
+  NS={url:$('#sNsUrl').value.trim(),sec:$('#sNsSec').value.trim(),up:$('#sNsUp').checked};
+  LS.set('sk_ns_url',NS.url);LS.set('sk_ns_sec',NS.sec);LS.set('sk_ns_up',NS.up);
+  await saveSettings();toast('Сохранено ✓');
+  await loadCGM();fillSettings();renderAll();
+}
+
+/* ---------- события ---------- */
+function show(v){$$('section').forEach(s=>s.classList.add('hidden'));$('#v-'+v).classList.remove('hidden');$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));window.scrollTo(0,0);
+  if(v==='food')prefillFood();if(v==='hist')renderHist();if(v==='set')fillSettings();if(v==='main')renderAll()}
+$$('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+$('#btnEat').onclick=()=>show('food');
+$('#btnLev').onclick=levModal;$('#btnSleep').onclick=sleepModal;$('#btnVit').onclick=vitModal;$('#btnBg').onclick=bgModal;$('#btnCorr').onclick=corrModal;
+$('#btnRefresh').onclick=async()=>{await loadCGM();renderAll();toast(nsState==='ok'?'Обновлено':(NS.url?'Nightscout недоступен':'Nightscout не настроен'))};
+$('#hrsSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;chartH=+b.dataset.h;$$('#hrsSeg button').forEach(x=>x.classList.toggle('on',x===b));renderChart()};
+$('#histSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;histDays=+b.dataset.d;$$('#histSeg button').forEach(x=>x.classList.toggle('on',x===b));renderHist()};
+$('#histList').onclick=e=>{const b=e.target.closest('[data-del]');if(!b)return;const id=b.dataset.del;
+  openModal('<h2>Удалить запись?</h2><div class="grid2" style="margin-top:16px"><button class="btn" id="mC">Отмена</button><button class="btn red" id="mOk">Удалить</button></div>',()=>{$('#mC').onclick=closeModal;$('#mOk').onclick=()=>{deleteEntry(id);closeModal()}})};
+$('#foodChips').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;const f=FOODS[+b.dataset.f];
+  $('#fCarbs').value=String((num($('#fCarbs').value)||0)+f[1]);$('#fXe').value=fU((num($('#fCarbs').value)||0)/S.xe).replace(',','.');
+  const name=f[0].split(',')[0].replace(' ¼','').toLowerCase();const t=$('#fFood').value.trim();$('#fFood').value=t?t+', '+name:name.charAt(0).toUpperCase()+name.slice(1);renderCalc()};
+$('#fCarbs').oninput=()=>{const c=num($('#fCarbs').value);$('#fXe').value=c!=null?fU(c/S.xe).replace(',','.'):'';renderCalc()};
+$('#fXe').oninput=()=>{const x=num($('#fXe').value);$('#fCarbs').value=x!=null?String(Math.round(x*S.xe)):'';renderCalc()};
+$('#fBg').oninput=()=>{$('#fBgHint').textContent='';renderCalc()};
+$('#fUnits').oninput=()=>{unitsTouched=true};
+$('#btnClearMeal').onclick=clearMeal;
+$('#btnSaveMeal').onclick=()=>{
+  const food=$('#fFood').value.trim(),carbs=num($('#fCarbs').value),bg=num($('#fBg').value),units=num($('#fUnits').value);
+  if(!food&&!carbs){toast('Напишите, что съели, или углеводы');return}
+  if(units!=null&&(units<0||units>50)){toast('Проверьте дозу');return}
+  if(bg!=null&&(bg<1||bg>35)){toast('Проверьте сахар');return}
+  saveEntry({id:uid(),ts:timeToTs($('#fTime').value),type:'meal',food,carbs:carbs||0,bg:bg??undefined,units:units??undefined,rec:calcRes&&calcRes.dose!=null?calcRes.dose:undefined});
+  toast('Сохранено в историю ✓');clearMeal();show('main');
+};
+$('#btnSaveSet').onclick=onSaveSettings;
+$('#btnCopy').onclick=async()=>{
+  const lines=histFiltered().slice().reverse().map(e=>{const d=new Date(e.ts);const ds=d.toLocaleDateString('ru-RU')+' '+hm(e.ts);
+    if(e.type==='meal')return ds+'  Еда: '+(e.food||'')+(e.carbs?' — '+Math.round(e.carbs)+' г ('+fU(e.carbs/S.xe)+' ХЕ)':'')+(e.bg?', сахар '+f1(e.bg):'')+(e.units!=null?', короткий '+fU(e.units)+' ед':'');
+    if(e.type==='insulin')return ds+'  Подколка '+fU(e.units)+' ед'+(e.bg?', сахар '+f1(e.bg):'');
+    if(e.type==='levemir')return ds+'  Левемир '+fU(e.units)+' ед';
+    if(e.type==='sleep_start')return ds+'  Лёг спать';
+    if(e.type==='sleep_end')return ds+'  Проснулся'+(e.mins?', спал '+dur(e.mins):'');
+    if(e.type==='vitamin')return ds+'  Витамины: '+(e.names||[]).join(', ');
+    return ds+'  Сахар '+f1(e.bg)+(e.note?' ('+e.note+')':'')});
+  const txt='Дневник диабета\n'+lines.join('\n');
+  try{await navigator.clipboard.writeText(txt);toast('Скопировано — можно вставить в сообщение врачу')}catch(_){const b=$('#copyBox');b.value=txt;b.classList.remove('hidden');b.select();toast('Выделите текст и скопируйте')}
+};
+window.addEventListener('resize',()=>renderChart());
+
+/* ---------- запуск ---------- */
+renderChips();fillSettings();renderAll();
+loadCGM().then(()=>{renderAll();fillSettings()});
+initCloud();
+setInterval(()=>{loadCGM().then(renderAll)},60000);
+setInterval(()=>{renderTop();renderBanners();renderLev();renderSleepVit()},20000);
+</script>
+</body>
+</html>
