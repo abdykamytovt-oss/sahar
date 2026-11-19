@@ -251,7 +251,7 @@ nav button.on{color:var(--txt);background:#2a2a2e}
   <h3>Nightscout</h3>
   <label>Адрес сайта</label><input id="sNsUrl" type="url" placeholder="https://моё-имя.herokuapp.com" autocapitalize="off" autocorrect="off">
   <label>Токен (или API_SECRET) — хранится только на этом устройстве</label><input id="sNsSec" type="password" autocapitalize="off" autocorrect="off" placeholder="readable-abc123…">
-  <label class="row" style="color:var(--txt);gap:8px"><input id="sNsUp" type="checkbox" style="width:auto"> Отправлять записи (еда, инсулин, Левемир) в Nightscout</label>
+  <label class="row" style="color:var(--txt);gap:8px"><input id="sNsUp" type="checkbox" style="width:auto"> Общая история на всех телефонах (через Nightscout, нужен API_SECRET)</label>
   <div class="note" id="nsStatus"></div>
 
   <button class="btn green block" style="margin-top:16px" id="btnSaveSet">Сохранить настройки</button>
@@ -287,7 +287,8 @@ function toast(msg,ms=2200){const t=document.createElement('div');t.className='t
 const DEF={xe:12,k_m:null,k_d:null,k_e:null,isf:null,target:6.0,low:3.9,high:10.0,dia:4,step:0.5,maxBolus:10,lev_m_t:'10:00',lev_e_t:'22:00',lev_m_u:null,lev_e_u:null,vits:'Витамин D3, Омега-3, Магний, Витамин B12'};
 let S={...DEF,...LS.get('sk_settings',{})};
 let ENT=LS.get('sk_entries',[]).sort((a,b)=>b.ts-a.ts); // записи дневника
-let NS={url:LS.get('sk_ns_url','https://j08723842.nightscout-jino.ru'),sec:LS.get('sk_ns_sec',''),up:LS.get('sk_ns_up',false)};
+let NS={url:LS.get('sk_ns_url','https://j08723842.nightscout-jino.ru'),sec:LS.get('sk_ns_sec',''),up:LS.get('sk_ns_sync',true)};
+let DELS=LS.get('sk_del',[]); let nsSyncState='';
 let CGM=[];                                   // {t,v(ммоль),dir}
 let nsState='off', nsErr='';
 let cloud=null, syncMsg='История сохраняется на этом устройстве.';
@@ -330,10 +331,12 @@ async function saveEntry(e){
   ENT.unshift(e); ENT.sort((a,b)=>b.ts-a.ts); persistLocal(); renderAll();
   if(cloud){try{await cloud.log.doc(e.id).set(e)}catch(err){e._local=1;persistLocal();toast('Сохранено на устройстве, в облако — позже')}}
   else{e._local=1;persistLocal()}
-  if(NS.up&&nsState==='ok'){const ok=await nsUpload(e); if(!ok) toast('Не удалось отправить в Nightscout');}
+  if(canSync()){const id=await nsUpload(e); if(id){e._ns=id;persistLocal()} else toast('Не отправилось — повторю позже');}
 }
 async function deleteEntry(id){
+  const old=ENT.find(e=>e.id===id);
   ENT=ENT.filter(e=>e.id!==id); persistLocal(); renderAll();
+  if(old&&old._ns){DELS.push({id,ns:old._ns});LS.set('sk_del',DELS);if(canSync())await flushDeletes();}
   if(cloud){try{await cloud.log.doc(id).delete()}catch(_){}}
 }
 async function saveSettings(){
@@ -361,14 +364,57 @@ async function loadCGM(){
       :('Не удалось подключиться: '+(e.message||e));
   }
 }
+const canSync=()=>!!(NS.url&&NS.sec&&NS.up&&nsState==='ok');
+function cleanEntry(e){const c={};for(const k in e){if(k[0]!=='_'&&e[k]!==undefined)c[k]=e[k]}return c}
 async function nsUpload(e){
-  if(['sleep_start','sleep_end','vitamin'].includes(e.type)) return true;
-  const tr={enteredBy:'СахарКонтроль',created_at:new Date(e.ts).toISOString()};
+  const tr={enteredBy:'СахарКонтроль',created_at:new Date(e.ts).toISOString(),sk_id:e.id,sk:cleanEntry(e)};
   if(e.type==='meal'){tr.eventType='Meal Bolus';if(e.carbs)tr.carbs=e.carbs;if(e.units)tr.insulin=e.units;tr.notes=e.food||''}
   else if(e.type==='insulin'){tr.eventType='Correction Bolus';tr.insulin=e.units}
   else if(e.type==='levemir'){tr.eventType='Note';tr.notes='Левемир '+e.units+' ед'}
   else if(e.type==='bg'){tr.eventType='BG Check';tr.glucose=e.bg;tr.glucoseType='Finger';tr.units='mmol'}
-  try{const r=await fetch(nsUrl('/api/v1/treatments'),{method:'POST',headers:{'Content-Type':'application/json',...await nsHeaders()},body:JSON.stringify([tr])});return r.ok}catch(_){return false}
+  else if(e.type==='sleep_start'){tr.eventType='Note';tr.notes='Лёг спать'}
+  else if(e.type==='sleep_end'){tr.eventType='Note';tr.notes='Проснулся'+(e.mins?', спал '+dur(e.mins):'')}
+  else if(e.type==='vitamin'){tr.eventType='Note';tr.notes='Витамины: '+(e.names||[]).join(', ')}
+  try{const r=await fetch(nsUrl('/api/v1/treatments'),{method:'POST',headers:{'Content-Type':'application/json',...await nsHeaders()},body:JSON.stringify([tr])});
+    if(!r.ok)return null;const j=await r.json().catch(()=>null);const d=Array.isArray(j)?j[0]:j;return (d&&d._id)||'1'}catch(_){return null}
+}
+async function flushDeletes(){
+  const rest=[];
+  for(const d of DELS){try{const r=await fetch(nsUrl('/api/v1/treatments/'+encodeURIComponent(d.ns)),{method:'DELETE',headers:await nsHeaders()});if(!r.ok&&r.status!==404)rest.push(d)}catch(_){rest.push(d)}}
+  DELS=rest;LS.set('sk_del',DELS);
+}
+let syncing=false;
+async function nsSync(){
+  if(!NS.url||nsState!=='ok'||syncing)return;
+  syncing=true;
+  try{
+    const since=Date.now()-60*864e5;
+    const q='/api/v1/treatments.json?count=3000&find[enteredBy]='+encodeURIComponent('СахарКонтроль')+'&find[created_at][$gte]='+encodeURIComponent(new Date(since).toISOString());
+    const r=await fetch(nsUrl(q),{headers:await nsHeaders(),cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const list=await r.json();
+    const remote=new Map();for(const t of list){if(t.sk_id&&t.sk)remote.set(t.sk_id,t)}
+    const delIds=new Set(DELS.map(d=>d.id));
+    let changed=false;
+    // удалённые на другом телефоне
+    const before=ENT.length;
+    ENT=ENT.filter(e=>!(e._ns&&e.ts>=since&&!remote.has(e.id)));
+    if(ENT.length!==before)changed=true;
+    const have=new Map(ENT.map(e=>[e.id,e]));
+    for(const [id,t] of remote){
+      if(delIds.has(id))continue;
+      const loc=have.get(id);
+      if(!loc){const e={...t.sk,_ns:t._id};ENT.push(e);changed=true}
+      else if(!loc._ns){loc._ns=t._id;changed=true}
+    }
+    if(canSync()){
+      for(const e of ENT){if(!e._ns&&e.ts>=since){const id=await nsUpload(e);if(id){e._ns=id;changed=true}}}
+      if(DELS.length)await flushDeletes();
+    }
+    if(changed){ENT.sort((a,b)=>b.ts-a.ts);persistLocal();if(cloud){for(const e of ENT.slice(0,50)){}}renderAll()}
+    nsSyncState=NS.sec?(canSync()?'🔄 Общая история: записи видны на всех телефонах.':'⚠️ Общая история выключена в Настройках.'):'👀 Видны записи с других телефонов. Чтобы ваши записи видели другие — введите API_SECRET в Настройках.';
+  }catch(e){nsSyncState='⚠️ Не удалось синхронизировать историю: '+(e.message||e)}
+  syncing=false;renderSync();
 }
 
 /* ---------- расчёты ---------- */
@@ -516,7 +562,7 @@ function renderChart(){
   s+='</svg>';box.innerHTML=s;
 }
 function renderSync(){
-  $('#syncNote').textContent=syncMsg+(nsState==='ok'?' Данные сенсора — из Nightscout.':'');
+  $('#syncNote').textContent=(nsState==='ok'&&nsSyncState?nsSyncState:syncMsg)+(nsState==='ok'?' Сахар — из Nightscout.':'');
 }
 const ICON={meal:'🍽',insulin:'💧',levemir:'💉',bg:'🩸',sleep_start:'🌙',sleep_end:'☀️',vitamin:'💊'};
 const dur=m=>Math.floor(m/60)+' ч '+pad(Math.round(m%60))+' мин';
@@ -656,9 +702,9 @@ async function onSaveSettings(){
      maxBolus:num($('#sMax').value)||10,low:num($('#sLow').value)||3.9,high:num($('#sHigh').value)||10,
      lev_m_t:$('#sLmT').value||'10:00',lev_e_t:$('#sLeT').value||'22:00',lev_m_u:num($('#sLmU').value),lev_e_u:num($('#sLeU').value),vits:$('#sVits').value.trim()};
   NS={url:$('#sNsUrl').value.trim(),sec:$('#sNsSec').value.trim(),up:$('#sNsUp').checked};
-  LS.set('sk_ns_url',NS.url);LS.set('sk_ns_sec',NS.sec);LS.set('sk_ns_up',NS.up);
+  LS.set('sk_ns_url',NS.url);LS.set('sk_ns_sec',NS.sec);LS.set('sk_ns_sync',NS.up);
   await saveSettings();toast('Сохранено ✓');
-  await loadCGM();fillSettings();renderAll();
+  await loadCGM();fillSettings();renderAll();nsSync();
 }
 
 /* ---------- события ---------- */
@@ -667,7 +713,7 @@ function show(v){$$('section').forEach(s=>s.classList.add('hidden'));$('#v-'+v).
 $$('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 $('#btnEat').onclick=()=>show('food');
 $('#btnLev').onclick=levModal;$('#btnSleep').onclick=sleepModal;$('#btnVit').onclick=vitModal;$('#btnBg').onclick=bgModal;$('#btnCorr').onclick=corrModal;
-$('#btnRefresh').onclick=async()=>{await loadCGM();renderAll();toast(nsState==='ok'?'Обновлено':(NS.url?'Nightscout недоступен':'Nightscout не настроен'))};
+$('#btnRefresh').onclick=async()=>{await loadCGM();renderAll();await nsSync();toast(nsState==='ok'?'Обновлено':(NS.url?'Nightscout недоступен':'Nightscout не настроен'))};
 $('#hrsSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;chartH=+b.dataset.h;$$('#hrsSeg button').forEach(x=>x.classList.toggle('on',x===b));renderChart()};
 $('#histSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;histDays=+b.dataset.d;$$('#histSeg button').forEach(x=>x.classList.toggle('on',x===b));renderHist()};
 $('#histList').onclick=e=>{const b=e.target.closest('[data-del]');if(!b)return;const id=b.dataset.del;
@@ -705,9 +751,9 @@ window.addEventListener('resize',()=>renderChart());
 
 /* ---------- запуск ---------- */
 renderChips();fillSettings();renderAll();
-loadCGM().then(()=>{renderAll();fillSettings()});
+loadCGM().then(()=>{renderAll();fillSettings();nsSync()});
 initCloud();
-setInterval(()=>{loadCGM().then(renderAll)},60000);
+setInterval(()=>{loadCGM().then(()=>{renderAll();nsSync()})},60000);
 setInterval(()=>{renderTop();renderBanners();renderLev();renderSleepVit()},20000);
 </script>
 </body>
