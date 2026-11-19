@@ -347,8 +347,9 @@ async function saveSettings(){
 /* ---------- Nightscout ---------- */
 const isToken=s=>/^[a-z0-9_.]+-[0-9a-f]{16}$/i.test(s||'');
 async function sha1(s){const b=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
-function nsUrl(path){let u=NS.url.trim().replace(/\/+$/,'');if(!/^https?:\/\//i.test(u))u='https://'+u;if(NS.sec&&isToken(NS.sec))path+=(path.includes('?')?'&':'?')+'token='+encodeURIComponent(NS.sec);return u+path}
-async function nsHeaders(){if(!NS.sec||isToken(NS.sec))return {};try{return {'api-secret':await sha1(NS.sec)}}catch(_){return {}}}
+let SECHASH='';async function updHash(){try{SECHASH=NS.sec&&!isToken(NS.sec)?await sha1(NS.sec.trim()):''}catch(_){SECHASH=''}}
+function nsUrl(path){let u=NS.url.trim().replace(/\/+$/,'');if(!/^https?:\/\//i.test(u))u='https://'+u;const s=path.includes('?')?'&':'?';if(NS.sec&&isToken(NS.sec))path+=s+'token='+encodeURIComponent(NS.sec.trim());else if(SECHASH)path+=s+'secret='+SECHASH;return u+path}
+async function nsHeaders(){return {}}
 async function loadCGM(){
   if(!NS.url){nsState='off';return}
   try{
@@ -376,6 +377,7 @@ async function nsUpload(e){
   else if(e.type==='sleep_end'){tr.eventType='Note';tr.notes='Проснулся'+(e.mins?', спал '+dur(e.mins):'')}
   else if(e.type==='vitamin'){tr.eventType='Note';tr.notes='Витамины: '+(e.names||[]).join(', ')}
   try{const r=await fetch(nsUrl('/api/v1/treatments'),{method:'POST',headers:{'Content-Type':'application/json',...await nsHeaders()},body:JSON.stringify([tr])});
+    if(r.status===401||r.status===403){nsSyncState='⚠️ Nightscout не принял пароль (API_SECRET). Проверьте его в Настройках.';renderSync();return null}
     if(!r.ok)return null;const j=await r.json().catch(()=>null);const d=Array.isArray(j)?j[0]:j;return (d&&d._id)||'1'}catch(_){return null}
 }
 async function flushDeletes(){
@@ -704,7 +706,7 @@ async function onSaveSettings(){
   NS={url:$('#sNsUrl').value.trim(),sec:$('#sNsSec').value.trim(),up:$('#sNsUp').checked};
   LS.set('sk_ns_url',NS.url);LS.set('sk_ns_sec',NS.sec);LS.set('sk_ns_sync',NS.up);
   await saveSettings();toast('Сохранено ✓');
-  await loadCGM();fillSettings();renderAll();nsSync();
+  await updHash();await loadCGM();fillSettings();renderAll();nsSync();
 }
 
 /* ---------- события ---------- */
@@ -751,7 +753,7 @@ window.addEventListener('resize',()=>renderChart());
 
 /* ---------- запуск ---------- */
 renderChips();fillSettings();renderAll();
-loadCGM().then(()=>{renderAll();fillSettings();nsSync()});
+updHash().then(loadCGM).then(()=>{renderAll();fillSettings();nsSync()});
 initCloud();
 setInterval(()=>{loadCGM().then(()=>{renderAll();nsSync()})},60000);
 setInterval(()=>{renderTop();renderBanners();renderLev();renderSleepVit()},20000);
